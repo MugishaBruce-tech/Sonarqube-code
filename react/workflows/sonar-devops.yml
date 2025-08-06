@@ -1,0 +1,56 @@
+name: devops_sonarqube CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build_analyze:
+    name: Test & SonarQube
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Fix Jest permissions (par précaution)
+        run: chmod +x ./node_modules/.bin/jest || echo "Jest déjà exécutable"
+
+      - name: Run tests with coverage
+        continue-on-error: true
+        run: |
+          npm run test:dev
+          cat coverage/lcov.info || echo "⚠️ Aucun fichier lcov.info généré !"
+
+      - name: Check test & coverage files
+        run: |
+          ls -la coverage/
+          echo "Début de lcov.info :"
+          head -n 5 coverage/lcov.info
+          echo "Début du test-reporter.xml :"
+          head -n 5 coverage/test-reporter.xml || echo "⚠️ test-reporter.xml manquant"
+
+      - name: SonarQube Scan (always run)
+        if: always()
+        uses: sonarsource/sonarqube-scan-action@v3
+        with:
+          projectBaseDir: .
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: https://predev.mediabox.bi:9001
+
