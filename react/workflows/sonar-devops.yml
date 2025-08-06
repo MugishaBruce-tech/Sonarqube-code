@@ -27,15 +27,18 @@ jobs:
 
       - name: Install dependencies
         run: npm install
+        working-directory: ./react
 
       - name: Fix Jest permissions (par précaution)
         run: chmod +x ./node_modules/.bin/jest || echo "Jest déjà exécutable"
+        working-directory: ./react
 
       - name: Run tests with coverage
         continue-on-error: true
         run: |
           npm run test:dev
           cat coverage/lcov.info || echo "⚠️ Aucun fichier lcov.info généré !"
+        working-directory: ./react
 
       - name: Check test & coverage files
         run: |
@@ -44,12 +47,13 @@ jobs:
           head -n 5 coverage/lcov.info
           echo "Début du test-reporter.xml :"
           head -n 5 coverage/test-reporter.xml || echo "⚠️ test-reporter.xml manquant"
+        working-directory: ./react
 
       - name: SonarQube Scan (always run)
         if: always()
         uses: sonarsource/sonarqube-scan-action@v3
         with:
-          projectBaseDir: .
+          projectBaseDir: ./react
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: https://predev.mediabox.bi:9001
